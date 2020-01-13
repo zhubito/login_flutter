@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:login_flutter/db/api.dart';
+import 'package:login_flutter/util/util.dart';
 
 class NewUser extends StatefulWidget {
 
@@ -59,20 +62,15 @@ class _NewUserState extends State<NewUser> {
                   TextFormField(
                     obscureText: false,
                     style: TextStyle(fontSize: 20.0),
-                    decoration: textfieldRegister("Email"),
+                    decoration: textfieldRadius("Email"),
                     controller: emailTxt,
-                    validator: (value) {
-                      if (value.isEmpty) {
-                        return 'Email es Obligatorio';
-                      }
-                      return null;
-                    },
+                    validator: validateEmail,
                   ),
                   SizedBox(height: 25.0),
                   TextFormField(
                     obscureText: true,
                     style: TextStyle(fontSize: 20.0),
-                    decoration: textfieldRegister("Password"),
+                    decoration: textfieldRadius("Password"),
                     controller: passTxt,
                     validator: (value) {
                       if (value.isEmpty) {
@@ -93,18 +91,21 @@ class _NewUserState extends State<NewUser> {
                       padding: EdgeInsets.fromLTRB(20.0, 15.0, 20.0, 15.0),
                       onPressed: () async {
                         if (_formKey.currentState.validate()) {
-                          //await newUser(emailTxt.text, passTxt.text);
+                          var resp = await newUserDB(emailTxt.text, passTxt.text);
+                          Map<String, dynamic> respuesta = jsonDecode(resp.body);
                           showDialog<void>(
                             context: context,
                             builder: (BuildContext context) {
                               return AlertDialog(
-                                title: Text('Usuario Creado'),
-                                content: const Text('Ya estas registrado, felicidades!!'),
+                                title: Text('Crear Nuevo Usuario'),
+                                content: Text(respuesta['mensaje']),
                                 actions: <Widget>[
                                   FlatButton(
                                     child: Text('Ok'),
                                     onPressed: () {
-                                      Navigator.of(context).pop();
+                                      if (!respuesta['error']){
+                                        Navigator.of(context).pop();
+                                      }
                                       Navigator.of(context).pop();
                                     },
                                   ),
@@ -129,16 +130,6 @@ class _NewUserState extends State<NewUser> {
           ),
         ),
       ),
-    );
-  }
-
-  textfieldRegister(text) {
-    return InputDecoration(
-      contentPadding:
-        EdgeInsets.fromLTRB(20.0, 15.0, 20.0, 15.0),
-      hintText: text,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(32.0))
     );
   }
 

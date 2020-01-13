@@ -1,8 +1,12 @@
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:login_flutter/db/api.dart';
 import 'package:login_flutter/model/user.dart';
 import 'package:login_flutter/ui/exito.dart';
 import 'package:login_flutter/ui/newuser.dart';
+import 'package:login_flutter/util/util.dart';
 
 class Login extends StatefulWidget {
   Login({Key key, this.title}) : super(key: key);
@@ -58,12 +62,7 @@ class _LoginState extends State<Login> {
                       style: TextStyle(fontSize: 20.0),
                       decoration: textfieldRadius("Email"),
                       controller: emailTxt,
-                      validator: (value) {
-                        if (value.isEmpty) {
-                          return 'Email es Obligatorio';
-                        }
-                        return null;
-                      },
+                      validator: validateEmail,
                     ),
                     SizedBox(height: 25.0),
                     TextFormField(
@@ -88,13 +87,39 @@ class _LoginState extends State<Login> {
                       child: MaterialButton(
                         minWidth: MediaQuery.of(context).size.width,
                         padding: EdgeInsets.fromLTRB(20.0, 15.0, 20.0, 15.0),
-                        onPressed: () {
+                        onPressed: () async {
+                          //Validamos campos
                           if (_formKey.currentState.validate()) {
-                            User usuario = User(email: emailTxt.text, pass: passTxt.text);
+                            //Verificamos email con la pass
+                            var resp = await loginDB(emailTxt.text, passTxt.text);
+                            //Decodificamos la respuesta
+                            Map<String, dynamic> respuesta = jsonDecode(resp.body);
+                            if (respuesta['error'] == false) {
+                              //Si no hay error.
+                              User usuario = User(email: emailTxt.text, pass: passTxt.text);
+                              Navigator.push(context,
+                                MaterialPageRoute(
+                                  builder: (context) => Exito(usuario)));
+                            } else {
+                              showDialog<void>(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: Text('Error'),
+                                    content: Text(respuesta['mensaje']),
+                                    actions: <Widget>[
+                                      FlatButton(
+                                        child: Text('Aceptar'),
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            }
                             limpiarCampos();
-                            Navigator.push(context,
-                              MaterialPageRoute(
-                                builder: (context) => Exito(usuario)));
                           }
                         },
                         child: Text("Ingresar",
@@ -135,14 +160,6 @@ class _LoginState extends State<Login> {
     );
   }
 
-  textfieldRadius(text) {
-    return InputDecoration(
-      contentPadding:
-        EdgeInsets.fromLTRB(20.0, 15.0, 20.0, 15.0),
-      hintText: text,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(32.0)));
-  }
 
   void limpiarCampos() {
     emailTxt.text = '';
